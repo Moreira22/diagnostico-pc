@@ -39,6 +39,8 @@ public class DiagnosticoService {
         d.setRamTotal(dto.getRamTotal());
         d.setDiscoLivre(dto.getDiscoLivre());
         d.setDataHora(LocalDateTime.now());
+        d.setCpuNome(dto.getCpuNome());
+        d.setGpu(dto.getGpu());
         d.setStatus(analisar(dto));
 
         return repository.save(d);

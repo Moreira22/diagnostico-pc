@@ -1,3 +1,5 @@
 psutil
 requests
 schedule
+gputil
+py-cpuinfo

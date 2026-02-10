@@ -8,4 +8,6 @@ public class ColetaDTO {
     private Double ramUso;
     private Double ramTotal;
     private Double discoLivre;
+    private String cpuNome;
+    private String gpu;
 }
