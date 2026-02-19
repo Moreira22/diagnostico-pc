@@ -2,28 +2,46 @@ package com.example.diagnostico_api.entity;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
 @Data
 public class Diagnostico {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double cpuUso;
-    private Double ramUso;
-    private Double ramTotal;
-    private Double discoLivre;
-    private String cpuNome;
-    private String gpu;
+    // Identificação da máquina
+    private String machineId;
+    private String hostname;
+    private String os;
+    private String ipAddress;
 
+    // CPU
+    private String cpuName;
+    private Double cpuPercent;
+    private Integer cpuCores;
+
+    // RAM
+    private Double ramTotalGb;
+    private Double ramUsedGb;
+    private Double ramPercent;
+
+    // Disco
+    private Double diskTotalGb;
+    private Double diskUsedGb;
+    private Double diskPercent;
+
+    // GPU
+    private String gpuName;
+
+    // Sistema
+    private Double uptimeHours;
+
+    // Controle
     private String status;
 
-    private LocalDateTime dataHora;
-    
+    private LocalDateTime timestamp;
 }

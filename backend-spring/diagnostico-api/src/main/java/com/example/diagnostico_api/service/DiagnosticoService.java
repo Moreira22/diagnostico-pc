@@ -34,30 +34,45 @@ public class DiagnosticoService {
     public Diagnostico processar(ColetaDTO dto) {
 
         Diagnostico d = new Diagnostico();
-        d.setCpuUso(dto.getCpuUso());
-        d.setRamUso(dto.getRamUso());
-        d.setRamTotal(dto.getRamTotal());
-        d.setDiscoLivre(dto.getDiscoLivre());
-        d.setDataHora(LocalDateTime.now());
-        d.setCpuNome(dto.getCpuNome());
-        d.setGpu(dto.getGpu());
+    
+        d.setMachineId(dto.getMachine_id());
+        d.setHostname(dto.getHostname());
+        d.setOs(dto.getOs());
+        d.setIpAddress(dto.getIp_address());
+    
+        d.setCpuName(dto.getCpu_name());
+        d.setCpuPercent(dto.getCpu_percent());
+        d.setCpuCores(dto.getCpu_cores());
+    
+        d.setRamTotalGb(dto.getRam_total_gb());
+        d.setRamUsedGb(dto.getRam_used_gb());
+        d.setRamPercent(dto.getRam_percent());
+    
+        d.setDiskTotalGb(dto.getDisk_total_gb());
+        d.setDiskUsedGb(dto.getDisk_used_gb());
+        d.setDiskPercent(dto.getDisk_percent());
+    
+        d.setGpuName(dto.getGpu_name());
+        d.setUptimeHours(dto.getUptime_hours());
+    
+        d.setTimestamp(dto.getTimestamp());
         d.setStatus(analisar(dto));
-
+    
         return repository.save(d);
     }
 
     private String analisar(ColetaDTO dto) {
 
-        if (dto.getCpuUso() > 90)
-            return "CRÍTICO: CPU muito alta";
-
-        if (dto.getRamUso() > 85)
-            return "ALERTA: RAM elevada";
-
-        if (dto.getDiscoLivre() < 20)
-            return "ALERTA: Pouco espaço em disco";
-
-        return "OK";
+        if (dto.getCpu_percent() > 90)
+            return "CRÍTICO";
+    
+        if (dto.getRam_percent() > 85)
+            return "ALERTA RAM";
+    
+        if (dto.getDisk_percent() > 90)
+            return "ALERTA DISCO";
+    
+        return "ONLINE";
     }
 
     public List<DiagnosticoDTO> listar() {
@@ -72,14 +87,16 @@ public class DiagnosticoService {
         PdfDocument pdf = new PdfDocument(writer);
         Document doc = new Document(pdf);
 
-        doc.add(new Paragraph("Relatório de Diagnóstico"));
-        doc.add(new Paragraph("Data: " + d.getDataHora()));
-        doc.add(new Paragraph("CPU: " + d.getCpuUso() + "%"));
-        doc.add(new Paragraph("RAM: " + d.getRamUso() + "%"));
-        doc.add(new Paragraph("Disco Livre: " + d.getDiscoLivre() + " GB"));
+        doc.add(new Paragraph("Máquina: " + d.getHostname()));
+        doc.add(new Paragraph("IP: " + d.getIpAddress()));
+        doc.add(new Paragraph("Sistema: " + d.getOs()));
+        doc.add(new Paragraph("CPU: " + d.getCpuPercent() + "%"));
+        doc.add(new Paragraph("RAM: " + d.getRamPercent() + "%"));
+        doc.add(new Paragraph("Disco: " + d.getDiskPercent() + "%"));
+        doc.add(new Paragraph("Uptime (h): " + d.getUptimeHours()));
         doc.add(new Paragraph("Status: " + d.getStatus()));
-
         doc.close();
+        
         return out.toByteArray();
     }
     
