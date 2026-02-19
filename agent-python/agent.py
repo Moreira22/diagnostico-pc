@@ -72,7 +72,7 @@ def enviar():
         print("Erro ao enviar:", e)
 
 # Coleta a cada 1 minuto
-schedule.every(1).minutes.do(enviar)
+schedule.every(10).minutes.do(enviar)
 
 print("Agent iniciado...")
 
