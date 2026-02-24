@@ -2,7 +2,6 @@ package com.example.diagnostico_api.service;
 
 import lombok.RequiredArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,9 +16,14 @@ import com.example.diagnostico_api.service.dto.DiagnosticoDTO;
 import com.example.diagnostico_api.service.dto.MachineRecordDTO;
 import com.example.diagnostico_api.service.dto.MetricsSnapshotDTO;
 import com.example.diagnostico_api.service.mapper.DiagnosticoMapper;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.kernel.colors.Color;
+import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.properties.TextAlignment;
+
 import java.io.ByteArrayOutputStream;
 import com.itextpdf.layout.Document;
 
@@ -84,27 +88,6 @@ public class DiagnosticoService {
 
     public List<DiagnosticoDTO> listar() {
         return mapper.toDto(repository.findAll());
-    }
-
-    public byte[] gerarPDF(Long id) {
-        Diagnostico d = findEntity(id);
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        PdfWriter writer = new PdfWriter(out);
-        PdfDocument pdf = new PdfDocument(writer);
-        Document doc = new Document(pdf);
-
-        doc.add(new Paragraph("Máquina: " + d.getHostname()));
-        doc.add(new Paragraph("IP: " + d.getIpAddress()));
-        doc.add(new Paragraph("Sistema: " + d.getOs()));
-        doc.add(new Paragraph("CPU: " + d.getCpuPercent() + "%"));
-        doc.add(new Paragraph("RAM: " + d.getRamPercent() + "%"));
-        doc.add(new Paragraph("Disco: " + d.getDiskPercent() + "%"));
-        doc.add(new Paragraph("Uptime (h): " + d.getUptimeHours()));
-        doc.add(new Paragraph("Status: " + d.getStatus()));
-        doc.close();
-
-        return out.toByteArray();
     }
 
     public List<MachineRecordDTO> listarMaquinas() {
@@ -182,6 +165,125 @@ public class DiagnosticoService {
                 ultimo.getStatus(),
                 ultimo.getTimestamp(),
                 history);
+    }
+
+    public byte[] gerarPDF(Long id) {
+
+        Diagnostico d = findEntity(id);
+
+        if (d == null) {
+            throw new RuntimeException("Diagnóstico não encontrado");
+        }
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PdfWriter writer = new PdfWriter(out);
+        PdfDocument pdf = new PdfDocument(writer);
+        Document doc = new Document(pdf);
+
+        // ==========================
+        // TÍTULO
+        // ==========================
+        Paragraph titulo = new Paragraph("RELATÓRIO DE DIAGNÓSTICO DO SISTEMA")
+                .setBold()
+                .setFontSize(20)
+                .setTextAlignment(TextAlignment.CENTER);
+
+        doc.add(titulo);
+        doc.add(new Paragraph("\n"));
+
+        // ==========================
+        // INFORMAÇÕES DA MÁQUINA
+        // ==========================
+        doc.add(new Paragraph("INFORMAÇÕES DA MÁQUINA")
+                .setBold()
+                .setFontSize(14));
+
+        Table infoTable = new Table(2).useAllAvailableWidth();
+
+        infoTable.addCell("Hostname");
+        infoTable.addCell(d.getHostname());
+
+        infoTable.addCell("IP");
+        infoTable.addCell(d.getIpAddress());
+
+        infoTable.addCell("Sistema Operacional");
+        infoTable.addCell(d.getOs());
+
+        infoTable.addCell("CPU");
+        infoTable.addCell(d.getCpuName() + " (" + d.getCpuCores() + " núcleos)");
+
+        infoTable.addCell("Data da Coleta");
+        infoTable.addCell(d.getTimestamp().toString());
+
+        doc.add(infoTable);
+
+        doc.add(new Paragraph("\n"));
+
+        // ==========================
+        // MÉTRICAS
+        // ==========================
+        doc.add(new Paragraph("MÉTRICAS DE DESEMPENHO")
+                .setBold()
+                .setFontSize(14));
+
+        Table metricsTable = new Table(2).useAllAvailableWidth();
+
+        metricsTable.addCell("CPU");
+        metricsTable.addCell(criarBarra(d.getCpuPercent()));
+
+        metricsTable.addCell("RAM");
+        metricsTable.addCell(criarBarra(d.getRamPercent()));
+
+        metricsTable.addCell("Disco");
+        metricsTable.addCell(criarBarra(d.getDiskPercent()));
+
+        metricsTable.addCell("Uptime");
+        metricsTable.addCell(String.format("%.2f horas", d.getUptimeHours()));
+
+        doc.add(metricsTable);
+
+        doc.add(new Paragraph("\n"));
+
+        // ==========================
+        // STATUS DESTACADO
+        // ==========================
+        Color statusColor = switch (d.getStatus().toLowerCase()) {
+            case "online" -> ColorConstants.GREEN;
+            case "warning" -> ColorConstants.ORANGE;
+            case "offline" -> ColorConstants.RED;
+            default -> ColorConstants.BLACK;
+        };
+
+        Paragraph status = new Paragraph("STATUS ATUAL: " + d.getStatus().toUpperCase())
+                .setBold()
+                .setFontSize(14)
+                .setFontColor(statusColor);
+
+        doc.add(status);
+
+        doc.add(new Paragraph("\n"));
+
+        // ==========================
+        // RODAPÉ
+        // ==========================
+        doc.add(new Paragraph("Relatório gerado automaticamente pelo Sistema de Diagnóstico Inteligente.")
+                .setFontSize(10)
+                .setItalic());
+
+        doc.close();
+
+        return out.toByteArray();
+    }
+
+    private String criarBarra(Double valor) {
+        int blocos = (int) (valor / 5); // 20 blocos máximo
+        StringBuilder barra = new StringBuilder();
+
+        for (int i = 0; i < blocos; i++) {
+            barra.append("█");
+        }
+
+        return barra + " " + String.format("%.1f %%", valor);
     }
 
 }

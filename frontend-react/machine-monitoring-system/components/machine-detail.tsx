@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import useSWR from "swr"
-import Link from "next/link"
-import { MetricGauge } from "@/components/metric-gauge"
-import { MetricsChart } from "@/components/metrics-chart"
-import { HardwareInfo } from "@/components/hardware-info"
-import { StatusIndicator } from "@/components/status-indicator"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import useSWR from "swr";
+import Link from "next/link";
+import { MetricGauge } from "@/components/metric-gauge";
+import { MetricsChart } from "@/components/metrics-chart";
+import { HardwareInfo } from "@/components/hardware-info";
+import { StatusIndicator } from "@/components/status-indicator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft,
   Cpu,
@@ -16,35 +16,40 @@ import {
   Activity,
   Loader2,
   Network,
-} from "lucide-react"
-import type { MachineRecord } from "@/lib/types"
+  FileDown,
+} from "lucide-react";
+import type { MachineRecord } from "@/lib/types";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+function handleGeneratePDF() {
+  window.open("http://localhost:8080/api/diagnostico/2/pdf", "_blank");
+}
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function formatUptime(hours: number): string {
-  if (hours < 1) return `${Math.round(hours * 60)} minutos`
-  if (hours < 24) return `${Math.round(hours)} horas`
-  const days = Math.floor(hours / 24)
-  const remainingHours = Math.round(hours % 24)
-  return `${days} dias e ${remainingHours} horas`
+  if (hours < 1) return `${Math.round(hours * 60)} minutos`;
+  if (hours < 24) return `${Math.round(hours)} horas`;
+  const days = Math.floor(hours / 24);
+  const remainingHours = Math.round(hours % 24);
+  return `${days} dias e ${remainingHours} horas`;
 }
 
 function formatLastSeen(timestamp: string): string {
-  const diff = Date.now() - new Date(timestamp).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return `${seconds}s atras`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}min atras`
-  const hours = Math.floor(minutes / 60)
-  return `${hours}h atras`
+  const diff = Date.now() - new Date(timestamp).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return `${seconds}s atras`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}min atras`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h atras`;
 }
 
 export function MachineDetail({ machineId }: { machineId: string }) {
   const { data: machine, isLoading } = useSWR<MachineRecord>(
     `/api/machines/${machineId}`,
     fetcher,
-    { refreshInterval: 10000 }
-  )
+    { refreshInterval: 10000 },
+  );
 
   if (isLoading || !machine) {
     return (
@@ -54,10 +59,10 @@ export function MachineDetail({ machineId }: { machineId: string }) {
           <p className="text-sm text-muted-foreground">Carregando dados...</p>
         </div>
       </div>
-    )
+    );
   }
 
-  const latest = machine.metrics_history[machine.metrics_history.length - 1]
+  const latest = machine.metrics_history[machine.metrics_history.length - 1];
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,7 +78,9 @@ export function MachineDetail({ machineId }: { machineId: string }) {
           <div className="flex flex-1 items-center justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-lg font-bold text-foreground">{machine.hostname}</h1>
+                <h1 className="text-lg font-bold text-foreground">
+                  {machine.hostname}
+                </h1>
                 <StatusIndicator status={machine.status} />
               </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -93,6 +100,13 @@ export function MachineDetail({ machineId }: { machineId: string }) {
                 {machine.metrics_history.length} amostras
               </span>
             </div>
+            <button
+              onClick={handleGeneratePDF}
+              className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition hover:opacity-90"
+            >
+              <FileDown className="h-4 w-4" />
+              Gerar PDF
+            </button>
           </div>
         </div>
       </header>
@@ -103,7 +117,9 @@ export function MachineDetail({ machineId }: { machineId: string }) {
           {latest && (
             <Card className="border-border/50 bg-card">
               <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-sm font-medium text-foreground">Metricas Atuais</CardTitle>
+                <CardTitle className="text-sm font-medium text-foreground">
+                  Metricas Atuais
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-2">
                 <div className="flex flex-wrap items-center justify-around gap-6 py-2">
@@ -130,7 +146,9 @@ export function MachineDetail({ machineId }: { machineId: string }) {
                       <Clock className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-sm font-medium text-muted-foreground">Uptime</span>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Uptime
+                      </span>
                       <span className="text-xs text-muted-foreground/70">
                         {formatUptime(latest.uptime_hours)}
                       </span>
@@ -169,5 +187,5 @@ export function MachineDetail({ machineId }: { machineId: string }) {
         </div>
       </main>
     </div>
-  )
+  );
 }
