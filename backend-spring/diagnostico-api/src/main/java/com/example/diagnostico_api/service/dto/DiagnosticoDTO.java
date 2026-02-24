@@ -44,5 +44,5 @@ public class DiagnosticoDTO {
     private String status;
 
     private LocalDateTime timestamp;
-    
+
 }

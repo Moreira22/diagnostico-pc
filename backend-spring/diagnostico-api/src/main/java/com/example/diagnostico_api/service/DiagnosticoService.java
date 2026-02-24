@@ -9,8 +9,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import com.example.diagnostico_api.entity.Diagnostico;
 import com.example.diagnostico_api.repository.DiagnosticoRepository;
@@ -25,9 +23,6 @@ import com.itextpdf.layout.element.Paragraph;
 import java.io.ByteArrayOutputStream;
 import com.itextpdf.layout.Document;
 
-
-
-
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -35,53 +30,57 @@ public class DiagnosticoService {
     private final DiagnosticoRepository repository;
     private final DiagnosticoMapper mapper;
 
-    public Diagnostico findEntity(Long id){ return repository.findById(id).orElse(null); }
-    public DiagnosticoDTO findById(Long id){
+    public Diagnostico findEntity(Long id) {
+        return repository.findById(id).orElse(null);
+    }
+
+    public DiagnosticoDTO findById(Long id) {
         return mapper.toDto(findEntity(id));
     }
+
     public Diagnostico processar(ColetaDTO dto) {
 
         Diagnostico d = new Diagnostico();
-    
+
         d.setMachineId(dto.getMachine_id());
         d.setHostname(dto.getHostname());
         d.setOs(dto.getOs());
         d.setIpAddress(dto.getIp_address());
-    
+
         d.setCpuName(dto.getCpu_name());
         d.setCpuPercent(dto.getCpu_percent());
         d.setCpuCores(dto.getCpu_cores());
-    
+
         d.setRamTotalGb(dto.getRam_total_gb());
         d.setRamUsedGb(dto.getRam_used_gb());
         d.setRamPercent(dto.getRam_percent());
-    
+
         d.setDiskTotalGb(dto.getDisk_total_gb());
         d.setDiskUsedGb(dto.getDisk_used_gb());
         d.setDiskPercent(dto.getDisk_percent());
-    
+
         d.setGpuName(dto.getGpu_name());
         d.setUptimeHours(dto.getUptime_hours());
-    
+
         d.setTimestamp(dto.getTimestamp());
         d.setStatus(analisar(dto));
-    
+
         return repository.save(d);
     }
 
     private String analisar(ColetaDTO dto) {
 
-    if (dto.getCpu_percent() > 90)
-        return "offline";   // crítico = offline
+        if (dto.getCpu_percent() > 90)
+            return "offline"; // crítico = offline
 
-    if (dto.getRam_percent() > 85)
-        return "warning";   // alerta = warning
+        if (dto.getRam_percent() > 85)
+            return "warning"; // alerta = warning
 
-    if (dto.getDisk_percent() > 90)
-        return "warning";   // alerta = warning
+        if (dto.getDisk_percent() > 90)
+            return "warning"; // alerta = warning
 
-    return "online";
-}
+        return "online";
+    }
 
     public List<DiagnosticoDTO> listar() {
         return mapper.toDto(repository.findAll());
@@ -104,19 +103,57 @@ public class DiagnosticoService {
         doc.add(new Paragraph("Uptime (h): " + d.getUptimeHours()));
         doc.add(new Paragraph("Status: " + d.getStatus()));
         doc.close();
-        
+
         return out.toByteArray();
     }
 
     public List<MachineRecordDTO> listarMaquinas() {
 
-    List<Diagnostico> diagnosticos = repository.findAll();
+        List<Diagnostico> diagnosticos = repository.findAll();
 
-    Map<String, List<Diagnostico>> agrupado =
-            diagnosticos.stream()
-                    .collect(Collectors.groupingBy(Diagnostico::getMachineId));
+        Map<String, List<Diagnostico>> agrupado = diagnosticos.stream()
+                .collect(Collectors.groupingBy(Diagnostico::getMachineId));
 
-    return agrupado.values().stream().map(lista -> {
+        return agrupado.values().stream().map(lista -> {
+
+            Diagnostico ultimo = lista.get(lista.size() - 1);
+
+            List<MetricsSnapshotDTO> history = lista.stream()
+                    .map(d -> new MetricsSnapshotDTO(
+                            d.getCpuPercent(),
+                            d.getRamUsedGb(),
+                            d.getRamPercent(),
+                            d.getDiskUsedGb(),
+                            d.getDiskPercent(),
+                            d.getUptimeHours(),
+                            d.getTimestamp()))
+                    .toList();
+
+            return new MachineRecordDTO(
+                    ultimo.getId(),
+                    ultimo.getMachineId(),
+                    ultimo.getHostname(),
+                    ultimo.getOs(),
+                    ultimo.getCpuName(),
+                    ultimo.getCpuCores(),
+                    ultimo.getRamTotalGb(),
+                    ultimo.getDiskTotalGb(),
+                    ultimo.getGpuName(),
+                    ultimo.getIpAddress(),
+                    ultimo.getStatus(),
+                    ultimo.getTimestamp(),
+                    history);
+
+        }).toList();
+    }
+
+    public MachineRecordDTO findByMachineId(String machineId) {
+
+        List<Diagnostico> lista = repository.findByMachineIdOrderByTimestampAsc(machineId);
+
+        if (lista.isEmpty()) {
+            return null;
+        }
 
         Diagnostico ultimo = lista.get(lista.size() - 1);
 
@@ -128,8 +165,7 @@ public class DiagnosticoService {
                         d.getDiskUsedGb(),
                         d.getDiskPercent(),
                         d.getUptimeHours(),
-                        d.getTimestamp()
-                ))
+                        d.getTimestamp()))
                 .toList();
 
         return new MachineRecordDTO(
@@ -145,51 +181,7 @@ public class DiagnosticoService {
                 ultimo.getIpAddress(),
                 ultimo.getStatus(),
                 ultimo.getTimestamp(),
-                history
-            );
-
-        }).toList();
+                history);
     }
 
-    public MachineRecordDTO findByMachineId(String machineId) {
-
-    List<Diagnostico> lista =
-            repository.findByMachineIdOrderByTimestampAsc(machineId);
-
-    if (lista.isEmpty()) {
-        return null;
-    }
-
-    Diagnostico ultimo = lista.get(lista.size() - 1);
-
-    List<MetricsSnapshotDTO> history = lista.stream()
-            .map(d -> new MetricsSnapshotDTO(
-                    d.getCpuPercent(),
-                    d.getRamUsedGb(),
-                    d.getRamPercent(),
-                    d.getDiskUsedGb(),
-                    d.getDiskPercent(),
-                    d.getUptimeHours(),
-                    d.getTimestamp()
-            ))
-            .toList();
-
-    return new MachineRecordDTO(
-            ultimo.getId(),
-            ultimo.getMachineId(),
-            ultimo.getHostname(),
-            ultimo.getOs(),
-            ultimo.getCpuName(),
-            ultimo.getCpuCores(),
-            ultimo.getRamTotalGb(),
-            ultimo.getDiskTotalGb(),
-            ultimo.getGpuName(),
-            ultimo.getIpAddress(),
-            ultimo.getStatus(),
-            ultimo.getTimestamp(),
-            history
-    );
-}
-    
-    
 }
