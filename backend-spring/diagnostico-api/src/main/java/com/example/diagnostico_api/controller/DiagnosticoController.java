@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import com.example.diagnostico_api.service.DiagnosticoService;
 import com.example.diagnostico_api.service.dto.ColetaDTO;
 import com.example.diagnostico_api.service.dto.DiagnosticoDTO;
+import com.example.diagnostico_api.service.dto.MachineRecordDTO;
 
 @RestController
 @RequestMapping("/api")
@@ -33,20 +34,34 @@ public class DiagnosticoController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/historico")
-    public List<DiagnosticoDTO> listar() {
-        return service.listar();
+    @GetMapping("/machines")
+    public List<MachineRecordDTO> listar() {
+        return service.listarMaquinas();
     }
 
+    @GetMapping("/machines/{machineId}")
+public ResponseEntity<MachineRecordDTO> buscar(
+        @PathVariable String machineId
+) {
+
+    MachineRecordDTO dto = service.findByMachineId(machineId);
+
+    if (dto == null) {
+        return ResponseEntity.notFound().build();
+    }
+
+    return ResponseEntity.ok(dto);
+}
+
     @GetMapping("/diagnostico/{id}/pdf")
-public ResponseEntity<byte[]> pdf(@PathVariable Long id) {
+    public ResponseEntity<byte[]> pdf(@PathVariable Long id) {
 
-    byte[] pdf = service.gerarPDF(id);
+        byte[] pdf = service.gerarPDF(id);
 
-    return ResponseEntity.ok()
-        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=diagnostico.pdf")
-        .contentType(MediaType.APPLICATION_PDF)
-        .body(pdf);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=diagnostico.pdf")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(pdf);
     }
     
 }

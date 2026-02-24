@@ -1,29 +1,57 @@
 import { NextResponse } from "next/server"
-import { getAllMachines, upsertMetrics } from "@/lib/store"
-import type { MachineMetrics } from "@/lib/types"
+
+const BACKEND_URL = "http://localhost:8080/api/machines"
 
 export async function GET() {
-  const machines = getAllMachines()
-  return NextResponse.json(machines)
+  try {
+    const res = await fetch(BACKEND_URL, {
+      cache: "no-store"
+    })
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Erro ao buscar maquinas no backend" },
+        { status: res.status }
+      )
+    }
+
+    const data = await res.json()
+    return NextResponse.json(data)
+
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Backend indisponivel" },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(request: Request) {
   try {
-    const data: MachineMetrics = await request.json()
+    const body = await request.json()
 
-    if (!data.machine_id || !data.hostname) {
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    })
+
+    if (!res.ok) {
       return NextResponse.json(
-        { error: "machine_id e hostname sao obrigatorios" },
-        { status: 400 }
+        { error: "Erro ao enviar dados para o backend" },
+        { status: res.status }
       )
     }
 
-    const record = upsertMetrics(data)
-    return NextResponse.json(record, { status: 201 })
-  } catch {
+    const data = await res.json()
+    return NextResponse.json(data, { status: 201 })
+
+  } catch (error) {
     return NextResponse.json(
-      { error: "Dados invalidos" },
-      { status: 400 }
+      { error: "Erro ao processar requisicao" },
+      { status: 500 }
     )
   }
 }
