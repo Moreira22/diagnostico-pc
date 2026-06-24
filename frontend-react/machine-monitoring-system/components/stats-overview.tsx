@@ -7,10 +7,12 @@ interface StatsOverviewProps {
 }
 
 export function StatsOverview({ machines }: StatsOverviewProps) {
-  const total = machines.length
-  const online = machines.filter((m) => m.status === "online").length
-  const warnings = machines.filter((m) => m.status === "warning").length
-  const offline = machines.filter((m) => m.status === "offline").length
+  const safeMachines = Array.isArray(machines) ? machines : []
+
+  const total = safeMachines.length
+  const online = safeMachines.filter((m) => m.status === "online").length
+  const warnings = safeMachines.filter((m) => m.status === "warning").length
+  const offline = safeMachines.filter((m) => m.status === "offline").length
 
   const avgCpu =
     machines.length > 0

@@ -15,17 +15,19 @@ export function MachineGrid({ machines }: MachineGridProps) {
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState("all")
 
-  const filtered = machines.filter((m) => {
+  const safeMachines = Array.isArray(machines) ? machines : []
+
+  const filtered = safeMachines.filter((m) => {
     const matchesSearch =
-      m.hostname.toLowerCase().includes(search.toLowerCase()) ||
-      m.ip_address.includes(search) ||
-      m.machine_id.toLowerCase().includes(search.toLowerCase())
+        m.hostname.toLowerCase().includes(search.toLowerCase()) ||
+        m.ip_address.includes(search) ||
+        m.machine_id.toLowerCase().includes(search.toLowerCase())
 
     const matchesFilter =
-      filter === "all" ||
-      (filter === "online" && m.status === "online") ||
-      (filter === "warning" && m.status === "warning") ||
-      (filter === "offline" && m.status === "offline")
+        filter === "all" ||
+        (filter === "online" && m.status === "online") ||
+        (filter === "warning" && m.status === "warning") ||
+        (filter === "offline" && m.status === "offline")
 
     return matchesSearch && matchesFilter
   })

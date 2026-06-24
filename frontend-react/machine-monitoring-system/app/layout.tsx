@@ -28,7 +28,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${_inter.variable} ${_jetbrainsMono.variable} font-sans antialiased`}>
+      <body   cz-shortcut-listen="true"
+          className={`${_inter.variable} ${_jetbrainsMono.variable} font-sans antialiased`}
+      >
         {children}
       </body>
     </html>
