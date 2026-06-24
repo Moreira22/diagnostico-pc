@@ -32,6 +32,7 @@ export function MachineGrid({ machines }: MachineGridProps) {
     return matchesSearch && matchesFilter
   })
 
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
