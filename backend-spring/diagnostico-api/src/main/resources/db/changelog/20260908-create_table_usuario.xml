@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.17.xsd">
+
+    <changeSet id="001" author="joao">
+
+        <!-- Sequence utilizada pelo Usuario -->
+        <createSequence
+                sequenceName="seq_usuario"
+                startValue="1"
+                incrementBy="1"/>
+
+        <!-- Tabela Usuario -->
+        <createTable tableName="usuario">
+
+            <column name="id" type="BIGINT">
+                <constraints
+                        primaryKey="true"
+                        nullable="false"/>
+            </column>
+
+            <column name="nome" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="login" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="senha" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="telefone" type="VARCHAR(255)"/>
+
+            <column name="ativo" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="primeiroAcesso" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="perfil_id" type="BIGINT"/>
+
+        </createTable>
+
+    </changeSet>
+
+</databaseChangeLog>
