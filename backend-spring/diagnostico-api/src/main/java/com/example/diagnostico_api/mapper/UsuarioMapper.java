@@ -12,7 +12,8 @@ import com.example.diagnostico_api.entity.Usuario;
 public interface UsuarioMapper extends EntityMapper<UsuarioDTO, Usuario> {
 
     @Override
-    @Mapping(source = "empresa.id", target = "empresaId")
+    @Mapping(source = "perfil.id", target = "perfilId")
+    @Mapping(source = "perfil.descricao", target = "perfilDescricao")
     UsuarioDTO toDto(Usuario entity);
 
     @Override

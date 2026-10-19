@@ -12,8 +12,10 @@ public class UsuarioDTO {
     private Long id;
     private String nome;
     private String email;
-    private String tipoTecnico;
+    private String login;
+    private String telefone;
     private Boolean ativo;
     private Boolean primeiroAcesso;
-    private Long empresaId;
+    private Long perfilId;
+    private String perfilDescricao;
 }

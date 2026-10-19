@@ -23,11 +23,16 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     @Query("SELECT u FROM Usuario u WHERE u.perfil.id = 3")
     List<Usuario> listAllCliente();
 
-    Optional<Usuario> findByEmail(String email);
-
-    boolean existsByEmail(String email);
 
     List<Usuario> findByEmpresaId(Long empresaId);
 
     List<Usuario> findByEmpresaIdAndAtivoTrue(Long empresaId);
+
+    Optional<Usuario> findByEmail(String email);
+
+    boolean existsByLogin(String login);
+
+    boolean existsByEmail(String email);
+
+    List<Usuario> findByPerfilId(Long perfilId);
 }
