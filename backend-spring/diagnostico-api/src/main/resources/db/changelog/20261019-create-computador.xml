@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="005-create-computador" author="joaovitor">
+        <createTable tableName="computador">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="setor_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_computador_setor"
+                             referencedTableName="setor"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="nome" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="memoria" type="VARCHAR(100)"/>
+            <column name="ssd" type="VARCHAR(100)"/>
+            <column name="cpu" type="VARCHAR(255)"/>
+            <column name="gpu" type="VARCHAR(255)"/>
+            <column name="ssd_total" type="DOUBLE"/>
+            <column name="ssd_livre" type="DOUBLE"/>
+            <column name="memoria_total" type="DOUBLE"/>
+            <column name="memoria_livre" type="DOUBLE"/>
+            <column name="memoria_uso" type="DOUBLE"/>
+            <column name="os" type="VARCHAR(100)"/>
+            <column name="cpu_nucleo" type="INT"/>
+            <column name="cpu_porcentagem" type="DOUBLE"/>
+            <column name="ativo" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_coleta" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
