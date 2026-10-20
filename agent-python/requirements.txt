@@ -3,3 +3,4 @@ requests
 schedule
 gputil
 py-cpuinfo
+schedule

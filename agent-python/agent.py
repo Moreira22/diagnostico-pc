@@ -6,14 +6,69 @@ import time
 import socket
 import uuid
 import os
+import json
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from cpuinfo import get_cpu_info
 
-BACKEND_URL = "http://localhost:8080/api/coleta"
+# ---------------------------------------------------------------------------
+# CONFIGURAÇÃO
+# ---------------------------------------------------------------------------
+BACKEND_BASE_URL = "http://localhost:8080"
+COLETA_URL = f"{BACKEND_BASE_URL}/api/coleta"
+# o backend confirma/limpa o comando quando o agente busca e executa
+COMANDO_URL_TEMPLATE = f"{BACKEND_BASE_URL}/api/comando/{{client_id}}"
 
-# ID único da máquina (gera baseado no MAC)
+# ID único da máquina (gera baseado no MAC, não muda entre execuções)
 MACHINE_ID = str(uuid.getnode())
+
+# CLIENT_ID: identifica o cliente/empresa dono deste agente.
+# Duas formas de preencher isso na hora do download pelo frontend:
+#
+# OPÇÃO A (mais simples): o backend gera o .py sob demanda e substitui o
+# placeholder abaixo antes de servir o arquivo para download.
+#   Ex. no backend: conteudo = template.replace("__CLIENT_ID__", client_id)
+CLIENT_ID = "__CLIENT_ID__"
+
+# OPÇÃO B (mais flexível, recomendada): o agente lê de um config.json que
+# fica na mesma pasta do executável/script, também gerado no momento do
+# download. Isso evita ter que reescrever o .py por cliente.
+# Se existir, o config.json tem prioridade sobre o placeholder acima.
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+if os.path.exists(CONFIG_PATH):
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            _cfg = json.load(f)
+            CLIENT_ID = _cfg.get("client_id", CLIENT_ID)
+    except Exception as e:
+        print("Erro ao ler config.json:", e)
+
+
+# Arquivo que guarda quando foi a última coleta completa, para sobreviver
+# a reinícios/desligamentos do PC (horário local, mesmo padrão usado
+# internamente pela lib "schedule").
+LAST_RUN_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "ultima_execucao.json"
+)
+
+
+def ler_ultima_execucao():
+    if os.path.exists(LAST_RUN_FILE):
+        try:
+            with open(LAST_RUN_FILE, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+                return datetime.fromisoformat(dados["last_run"])
+        except Exception as e:
+            print("Erro ao ler última execução:", e)
+    return None
+
+
+def salvar_ultima_execucao():
+    try:
+        with open(LAST_RUN_FILE, "w", encoding="utf-8") as f:
+            json.dump({"last_run": datetime.now().isoformat()}, f)
+    except Exception as e:
+        print("Erro ao salvar última execução:", e)
 
 
 def get_ip():
@@ -123,6 +178,7 @@ def coletar():
 
     return {
         "id": str(uuid.uuid4()),  # id único desta coleta
+        "client_id": CLIENT_ID,  # usado pelo backend para validar/vincular ao cliente
         "machine_id": MACHINE_ID,
         "hostname": platform.node(),
         "os": f"{platform.system()} {platform.release()}",
@@ -140,26 +196,65 @@ def coletar():
         "ip_address": get_ip(),
         "installed_programs": get_installed_programs(),
         "recent_programs": get_recent_programs(),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
 def enviar():
     dados = coletar()
     try:
-        requests.post(BACKEND_URL, json=dados, timeout=5)
-        print("Dados enviados:", dados)
+        resp = requests.post(COLETA_URL, json=dados, timeout=5)
+        if resp.status_code in (401, 403):
+            print("Client_id inválido/não autorizado pelo backend:", resp.text)
+        else:
+            print("Dados enviados:", dados["id"])
     except Exception as e:
-        print("Erro ao enviar:", e)
+        print("Erro ao enviar:", dados)
+    finally:
+        salvar_ultima_execucao()
 
 
-# Coleta a cada 10 minutos
-schedule.every(10).minutes.do(enviar)
+def verificar_comando():
+    """Pergunta ao backend se existe um comando pendente (ex: o usuário
+    clicou em 'coletar agora' no frontend). Se houver, executa a coleta
+    imediatamente. O backend deve limpar a flag ao responder (ou o agente
+    confirma a execução em uma segunda chamada, conforme a API)."""
+    if CLIENT_ID in ("", "__CLIENT_ID__"):
+        # evita rodar sem um client_id configurado
+        return
+    try:
+        url = COMANDO_URL_TEMPLATE.format(client_id=CLIENT_ID)
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            comando = resp.json()
+            if comando.get("coletar_agora"):
+                print("Comando recebido do backend: coletar agora")
+                enviar()
+    except Exception:
+        # silencioso para não poluir o log a cada poucos segundos
+        pass
 
-print("Agent iniciado...")
 
-# Primeira execução imediata
-enviar()
+# Coleta completa a cada 24 horas, mas respeitando o tempo já passado
+# mesmo que o PC tenha ficado desligado nesse meio tempo.
+job_coleta = schedule.every(24).hours.do(enviar)
+
+ultima_execucao = ler_ultima_execucao()
+agora = datetime.now()
+
+if ultima_execucao is None or (agora - ultima_execucao) >= timedelta(hours=24):
+    print("Já passou 24h desde a última coleta (ou é a primeira vez). Coletando agora...")
+    enviar()
+    job_coleta.next_run = datetime.now() + timedelta(hours=24)
+else:
+    proxima = ultima_execucao + timedelta(hours=24)
+    job_coleta.next_run = proxima
+    print(f"Última coleta foi há menos de 24h. Próxima coleta agendada para {proxima}")
+
+# Verifica comando remoto ("coletar agora") a cada 5 segundos
+schedule.every(5).seconds.do(verificar_comando)
+
+print(f"Agent iniciado... client_id={CLIENT_ID} machine_id={MACHINE_ID}")
 
 while True:
     schedule.run_pending()
